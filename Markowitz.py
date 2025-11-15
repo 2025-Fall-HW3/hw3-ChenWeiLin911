@@ -58,11 +58,12 @@ class EqualWeightPortfolio:
         # Get the assets by excluding the specified column
         assets = df.columns[df.columns != self.exclude]
         self.portfolio_weights = pd.DataFrame(index=df.index, columns=df.columns)
-
         """
         TODO: Complete Task 1 Below
         """
-
+        n_assets = len(assets)
+        equal_weight = 1.0 / n_assets
+        self.portfolio_weights.loc[:, assets] = equal_weight
         """
         TODO: Complete Task 1 Above
         """
@@ -106,20 +107,23 @@ class RiskParityPortfolio:
     def calculate_weights(self):
         # Get the assets by excluding the specified column
         assets = df.columns[df.columns != self.exclude]
-
         # Calculate the portfolio weights
         self.portfolio_weights = pd.DataFrame(index=df.index, columns=df.columns)
-
         """
         TODO: Complete Task 2 Below
         """
-
-
-
+        self.portfolio_weights.index.name = df.index.name
+        self.portfolio_weights.columns.name = df.columns.name
+        asset_returns = df_returns[assets]
+        rolling_vol = asset_returns.rolling(self.lookback).std().shift(1)
+        inv_vol = 1.0 / (rolling_vol)
+        inv_vol_sum = inv_vol.sum(axis=1)
+        weight_assets = inv_vol.div(inv_vol_sum, axis=0)
+        self.portfolio_weights.loc[:, assets] = weight_assets
+        self.portfolio_weights.iloc[self.lookback] = 0.0
         """
         TODO: Complete Task 2 Above
         """
-
         self.portfolio_weights.ffill(inplace=True)
         self.portfolio_weights.fillna(0, inplace=True)
 
@@ -190,8 +194,14 @@ class MeanVariancePortfolio:
 
                 # Sample Code: Initialize Decision w and the Objective
                 # NOTE: You can modify the following code
-                w = model.addMVar(n, name="w", ub=1)
-                model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+                #w = model.addMVar(n, name="w", ub=1)
+                #model.setObjective(w.sum(), gp.GRB.MAXIMIZE)
+                w = model.addMVar(n, lb=0.0, name="w")
+                model.addConstr(w.sum() == 1, name="budget")
+                linear_term = mu @ w
+                quad_term = w @ Sigma @ w
+                model.setObjective(linear_term - (gamma / 2.0) * quad_term,
+                                   gp.GRB.MAXIMIZE)
 
                 """
                 TODO: Complete Task 3 Above

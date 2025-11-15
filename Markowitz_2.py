@@ -70,7 +70,38 @@ class MyPortfolio:
         """
         TODO: Complete Task 4 Below
         """
-        
+
+        self.portfolio_weights.loc[:, :] = 0.0
+
+        prices = self.price[assets]
+        rets = self.returns[assets]
+
+        trend_lb = 200    
+        vol_lb = 50     
+
+        for i in range(trend_lb, len(self.price)):
+            date = self.price.index[i]
+
+
+            price_window = prices.iloc[i - trend_lb:i]
+            ma = price_window.mean()
+
+
+            investable = ma[prices.iloc[i] > ma].index
+
+            if len(investable) == 0:
+                continue
+
+
+            vol_window = rets[investable].iloc[i - vol_lb:i]
+            vol = vol_window.std()
+
+            eps = 1e-8
+            inv_vol = 1.0 / (vol + eps)
+            weights = inv_vol / inv_vol.sum()
+
+            self.portfolio_weights.loc[date, investable] = weights.values
+
         
         """
         TODO: Complete Task 4 Above
